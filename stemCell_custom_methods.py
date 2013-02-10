@@ -17,7 +17,7 @@ import gc
 from sensitivity_analysis import *
 
 
-def get_sensitivity_coefficient(paramName,paramValues,varName,modelFileName,timePoints,timeDelta,nSims,time,saveTimes,cluster,sensitivityFolderName):
+def get_sensitivity_coefficient(paramName,paramValues,varName,modelFileName,timePoints,timeDelta,nSims,time,saveTimes,cluster,sensitivityFolderName,loadAggregate=True):
 #procedura per calcolare sensitivity coefficient di una variabile rispetto ad un parametro
 
 ## dalle varie sim creo un dizionario (param,time) con i valori di una data  variabile per i valori di un dato parametro
@@ -34,13 +34,18 @@ def get_sensitivity_coefficient(paramName,paramValues,varName,modelFileName,time
         #nome cartella relativa a quel parametro
         simFolderName="%s%s%s%s%s" % (sensitivityFolderName,os.sep,modelFileName.strip('.L'),paramName,param)
 
-        if varName=='sphereSize':
-            aggregateVariable_in_time=aggregate_runs_sphereSize(simFolderName,modelFileName,nSims,saveTimes)
-        else:
-            aggregateVariable_in_time=aggregate_runs_totalReadout(simFolderName,modelFileName,nSims,saveTimes,varName)
+        if(loadAggregate==False):
 
-            
-        #assert False
+            if varName=='sphereSize':
+                aggregateVariable_in_time=aggregate_runs_sphereSize(simFolderName,modelFileName,nSims,saveTimes)
+            else:
+                aggregateVariable_in_time=aggregate_runs_totalReadout(simFolderName,modelFileName,nSims,saveTimes,varName)
+        else:
+                aggregateVariable_in_time=read_aggregate_variable_in_time(simFolderName,modelFileName,nSims-1,varName,'NumDivisions')
+                #print 'aggregateVariable_in_time[t]',aggregateVariable_in_time
+
+
+    #assert False
 
         #print 'aggregateVariable_in_time',aggregateVariable_in_time
 
@@ -253,6 +258,37 @@ def read_variable_in_time2(results_folder,modelFileName,run,pattern,variable):
     with open(nome_file, 'r') as the_file:
         f=the_file.readlines()
         return f
+
+def read_aggregate_variable_in_time(simFolderName,modelFileName,nSims,pattern,variable):
+    results_folder="%s%s" % (simFolderName,'/Results')
+    nome_file= "%s%s%s%s%s%s%s%s" % (results_folder,'/',modelFileName,pattern,variable,'aggregate',nSims,'.csv')
+    lst=[]
+    with open(nome_file, 'r') as the_file:
+        i=0
+        for l in the_file.readlines():
+            lst.append([])
+            strs = filter(lambda x:len(x)>0, l.strip().split(' '))
+            values = [float(val) for val in strs]
+            lst[i] = values
+            i+=1
+    return lst
+
+
+def read_aggregate_variable_timestep(simFolderName,modelFileName,nSims,pattern,variable,timestep):
+    #print timestep
+    results_folder="%s%s" % (simFolderName,'/Results')
+    nome_file= "%s%s%s%s%s%s%s%s" % (results_folder,'/',modelFileName,pattern,variable,'aggregate',nSims,'.csv')
+    lst=[]
+    values=[]
+    with open(nome_file, 'r') as the_file:
+        i=0
+        for l in the_file.readlines():
+            if i==timestep:
+                strs = filter(lambda x:len(x)>0, l.strip().split(' '))
+                values = [float(val) for val in strs]
+                #print 'len(values)', len(values)
+            i+=1
+    return values
 
 def read_variable_in_time(lst,results_folder,modelFileName,run,pattern,variable):
     nome_file= "%s%s%s%s%s%s%s%s" % (results_folder,'/',modelFileName, pattern,variable,'Sim',run,'.csv')

@@ -31,7 +31,7 @@ saveTimes=timePoints
 ############################################
 
 
-def getAndPlotCoefficietnsRanking(ParanNamesValues,varName,modelFileName,timePoints,timeDelta,nSims,time,saveTimes,cluster,show=True,save=True):
+def getAndPlotCoefficietnsRanking(ParanNamesValues,varName,modelFileName,timePoints,timeDelta,nSims,time,saveTimes,cluster,show=True,save=False):
 
     plt.figure()
     plt.hold(True)
@@ -39,7 +39,7 @@ def getAndPlotCoefficietnsRanking(ParanNamesValues,varName,modelFileName,timePoi
     for param in ParanNamesValues.keys():
         paramName = param
         paramValues = ParanNamesValues[param]
-    
+
         paramCoefficient=SC.get_sensitivity_coefficient(paramName,paramValues,varName,modelFileName,timePoints,timeDelta,nSims,time,saveTimes,cluster,sensitivityFolderName)
 
         plt.plot(timePoints[1:-1], paramCoefficient[1:-1],label=param)
