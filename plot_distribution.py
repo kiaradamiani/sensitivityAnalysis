@@ -34,7 +34,7 @@ def getDistribution(simFolderName,fileNameBins,modelFileName,nSims,varName,time2
         freq,binss=np.histogram(list2hist,bins,normed=normalized)
         #print 'bins hist',bins,'freq hist',freq
 
-        return freq,bins
+        return [freq,bins]
     
     
 #if nBins is seto to 0 all the possible bins will be plotted
@@ -56,7 +56,10 @@ def plotDistribution(sensitivityFolderName,modelFileName,paramName,paramValues,t
 
         print 'simFolderName',simFolderName
 
-        freq,bins=getDistribution(simFolderName,fileNameBins,modelFileName,nSims,varName,time2plot,nBins,normalized)
+        Distribution=getDistribution(simFolderName,fileNameBins,modelFileName,nSims,varName,time2plot,nBins,normalized)
+        
+        freq=Distribution[0]
+        bins=Distribution[1]
 
         freq_list.append(list(freq))
         
