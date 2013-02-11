@@ -39,10 +39,11 @@ saveTimes=timePoints
 referenceDistribution=[] 
 nBins=0
 normalized=True
+titlesList=[]
 
 for param in ParanNamesValues.keys():
     paramName = param
     paramValues = ParanNamesValues[param]
 
-    plotDistribution(sensitivityFolderName,modelFileName,paramName,paramValues,time2plot,nSims,varName,nBins,referenceDistribution,normalized,True,False)
+    plotDistribution(sensitivityFolderName,modelFileName,paramName,paramValues,time2plot,nSims,varName,nBins,referenceDistribution,normalized,titlesList,True,False)
 

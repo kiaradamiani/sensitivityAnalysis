@@ -94,12 +94,17 @@ def getHistogramsDistance(hist1,hist2):
     
     freqs1=hist1[0]
     freqs2=hist2[0]
+    
+    #print 'freqs1',freqs1,'freqs2',freqs2
+    
+    #print 'sum(freqs1)',sum(freqs1)
 
     distance=0
     for i in range (0,len(freqs1)):
         diff=abs(freqs1[i]-freqs2[i])
+        #print 'freq1',freqs1[i],'freq2',freqs2[i],'diff',diff
         distance=distance+diff
-        return distance
+    return distance
 
 
 #allinea due istogrammi con bin unitari (non necesariamente lo stesso numero) mettendo 0 alle frequenze che mancano, VA BENE ACHE SE NON UNITARI MA con gli stessi edges (es: 2, 4 ,6) non (3, 5, 79   
@@ -146,7 +151,7 @@ def getAllineatedHistograms(hist1,hist2):
     
 
 #scorre i parametri analizzati e per ogni parametro tirafuori (in un dizionario) distanze istogramma da istogramma di riferimento per ogni valore di quel parametro a tempo t
-def computeOverallDistances(ParanNamesValues,varName,modelFileName,timePoints,timeDelta,nSims,time,saveTimes,cluster,ReferenceHistogram,normalized=True,show=True,save=True):
+def computeOverallDistances(ParanNamesValues,varName,modelFileName,timePoints,timeDelta,nSims,time,saveTimes,cluster,ReferenceHistogram,normalized=True, plotDistributions=False,show=False,save=True):
     
     ParanNamesValuesDistances={}
 
@@ -154,21 +159,74 @@ def computeOverallDistances(ParanNamesValues,varName,modelFileName,timePoints,ti
         paramName = param
         paramValues = ParanNamesValues[param]
         
-        #plotta distribuzioni di quel parametro (una per valore di parametro) against la distribuzione di riferimento        
-        #plotDistribution(sensitivityFolderName,modelFileName,paramName,paramValues,day,nSims,varName,nBins,ReferenceHistogram,normalized,show,save)
+     
 
         #per ogni valore di parametro calcola distanza distribuzione da distribuzione di riferimento               
         ParamValuesDistances=computeParamDistances(ReferenceHistogram,paramName,paramValues,varName,modelFileName,timePoints,timeDelta,nSims,time,saveTimes,cluster,normalized)
         
+        print 'ParamValuesDistances',ParamValuesDistances
+        
         ParanNamesValuesDistances[param]=ParamValuesDistances
+        
+        if (plotDistributions):
+            #plotta distribuzioni di quel parametro (una per valore di parametro) against la distribuzione di riferimento        
+            plotDistribution(sensitivityFolderName,modelFileName,paramName,paramValues,day,nSims,varName,nBins,ReferenceHistogram,normalized,ParamValuesDistances,show,save)
     
     return ParanNamesValuesDistances
         
+
+def summurizeDistances(ParanNamesValuesDistances,ParanNamesValues,varName,modelFileName,showPlots=True,savePlots=True):
+    
+    plt.figure()
+
+    nParam=0
+    for param in ParanNamesValues.keys():
+
+        paramValues = ParanNamesValues[param]
+            
+        plt.hold(True)
+    
+        plt.subplot(1,len(ParanNamesValues.keys()),nParam)
+            
+   
+        plt.ylim([0, MaxExt(ParanNamesValuesDistances.values()) ])
+        
+        overallDistance=sum(ParanNamesValuesDistances[param])
+                    
+        titolo=param
+        plt.title(titolo)
+    
+        annotation='TOTdist:'+str(overallDistance)
+        
+        plt.plot(paramValues,ParanNamesValuesDistances[param],'+b-',label=annotation)
+        
+        plt.legend(loc='best')
+
+        
+        nParam=nParam+1
+        
+            
+    plt.suptitle(modelFileName.strip('.L')+' '+varName)
+        
+    if (savePlots):
+        #save plot
+        file_name=modelFileName+varName+'Distances.png'
+        plt.savefig(file_name,dpi=700)
+
+
+    if(showPlots):
+        plt.show()
+        
+
+    plt.clf()
+    gc.collect()
+
 
 
 ReferenceHistogram=getReferenceHistogram(fileName)
 ParanNamesValuesDistances=computeOverallDistances(ParanNamesValues,varName,modelFileName,timePoints,timeDelta,nSims,time,saveTimes,cluster,ReferenceHistogram)
 
-#print ParanNamesValuesDistances
+summurizeDistances(ParanNamesValuesDistances,ParanNamesValues,varName,modelFileName)
+        
+     
 
-#summurizeDistances(ParanNamesValuesDistances)

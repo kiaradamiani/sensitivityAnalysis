@@ -38,7 +38,7 @@ def getDistribution(simFolderName,fileNameBins,modelFileName,nSims,varName,time2
     
     
 #if nBins is seto to 0 all the possible bins will be plotted
-def plotDistribution(sensitivityFolderName,modelFileName,paramName,paramValues,time2plot,nSims,varName,nBins,referenceDistribution,normalized,showPlots,savePlots):
+def plotDistribution(sensitivityFolderName,modelFileName,paramName,paramValues,time2plot,nSims,varName,nBins,referenceDistribution,normalized,titlesList,showPlots,savePlots):
 
 
     fig=plt.figure(figsize=(15, 9))
@@ -65,7 +65,8 @@ def plotDistribution(sensitivityFolderName,modelFileName,paramName,paramValues,t
         
 
         #sovrascrivo sempre la stessa figura 1
-        plt.figure(1)
+        #plt.figure(1)
+        plt.hold(True)
 
         #print 'bins',len(bins),'freq',len(freq)
     
@@ -79,6 +80,12 @@ def plotDistribution(sensitivityFolderName,modelFileName,paramName,paramValues,t
             plt.bar(referenceDistribution[1][0:-1],referenceDistribution[0],color='r')
             plt.hold(False)
             plt.ylim([0, max(MaxExt(freq_list),max(referenceDistribution[0]))+0.1 ])
+            
+            #se fornita aggiungo etichetta con valore distanza
+            if titlesList!=[]:
+                print 'titlesList',titlesList
+                annotation='dist:'+str(titlesList[nParam-1])
+                plt.text(0.5,0.5,annotation)
         
         else:
             plt.ylim([0, MaxExt(freq_list)+0.1 ])
@@ -91,7 +98,7 @@ def plotDistribution(sensitivityFolderName,modelFileName,paramName,paramValues,t
 
         plt.xticks([bins[0],bins[-1]],[bins[0],bins[-1]])
         
-        
+
         #print 'freq_list',freq_list
         
         #print 'max(MaxExt(freq_list)',MaxExt(freq_list),'max(referenceDistribution[0]))+0.1',max(referenceDistribution[0]),'max(MaxExt(freq_list),max(referenceDistribution[0]))',max(MaxExt(freq_list),max(referenceDistribution[0]))
@@ -108,6 +115,6 @@ def plotDistribution(sensitivityFolderName,modelFileName,paramName,paramValues,t
     if(showPlots):
         plt.show()
         
-
+    plt.close()
     plt.clf()
     gc.collect()
