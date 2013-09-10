@@ -14,7 +14,254 @@ import matplotlib
 import csv
 import sys
 import gc
+import matplotlib.pyplot as plt
 from sensitivity_analysis import *
+
+
+def get_sensitivity_coefficient_plottingEverything(paramName,paramValues,varName,modelFileName,timePoints,timeDelta,nSims,time,saveTimes,cluster,sensitivityFolderName,loadAggregate=False):
+    #procedura per calcolare sensitivity coefficient di una variabile rispetto ad un parametro
+    
+    ## dalle varie sim creo un dizionario (param,time) con i valori di una data  variabile per i valori di un dato parametro
+    ## passo il dizionario a get_3d_freqse ottengo matrice 3d delel frequenze
+    ## la matrice 3d a compute_sensitivity e ottengo curve di sentisitivà
+    
+    nSims=nSims+1
+    
+    #inizializzo dizionari
+    aggregateVariable_in_time_dictionary={}
+    
+    for param in paramValues:
+        print paramName,'=',param
+        #nome cartella relativa a quel parametro
+        simFolderName="%s%s%s%s%s" % (sensitivityFolderName,os.sep,modelFileName.strip('.L'),paramName,param)
+        
+        if(loadAggregate==False):
+            
+            if varName=='sphereSize':
+                aggregateVariable_in_time=aggregate_runs_sphereSize(simFolderName,modelFileName,nSims,saveTimes)
+            else:
+                aggregateVariable_in_time=aggregate_runs_totalReadout(simFolderName,modelFileName,nSims,saveTimes,varName)
+        else:
+            aggregateVariable_in_time=read_aggregate_variable_in_time(simFolderName,modelFileName,nSims-1,varName,'NumDivisions')
+        #print 'aggregateVariable_in_time[t]',aggregateVariable_in_time
+        
+        
+        #assert False
+        
+        #print 'aggregateVariable_in_time',aggregateVariable_in_time
+        
+        #metto aggregate output in dizionario relativo alal variabile
+        aggregateVariable_in_time_dictionary[param]=DataSummary(aggregateVariable_in_time)
+        aggregateVariable_in_time=None
+        gc.collect()
+    
+    #controllo che ci sia qualche lista non vuota nel dizionario
+    len_aggregateVariable_in_time_dictionary=sum([x.total for x in aggregateVariable_in_time_dictionary.values()])
+    
+    if len_aggregateVariable_in_time_dictionary>0:
+        #da dizionario 3d delle simulazioni ottengo array 3d (parametro, tempo e bins) delle frequenze kernel
+        Variable_paramTime_freqs,Variable_bins=get_3D_freqs(aggregateVariable_in_time_dictionary)
+        
+        #Variable_paramTime_freqs[time,bins,param]
+        #pylab.plot(Variable_paramTime_freqs[0][0][0])
+        Variable_sensitivity,derivata_frequenze=compute_sensitivity(Variable_paramTime_freqs,paramValues)
+        #print Variable_bins
+        #print Variable_paramTime_freqs[0][:][0]
+		
+        #pylab.plot(Variable_bins,Variable_paramTime_freqs[0][0][:])
+        #pylab.show()
+        #derivata_frequenze(time,nBins,nParams)
+        #print derivata_frequenze
+        
+        Variable_coefficient=compute_sensitivity_coefficient(Variable_sensitivity,timePoints,paramValues)
+        
+        
+        fileName="%s%s%s%s%s" % (modelFileName.strip('.L'),varName,"_sensitivity_",paramName,'.txt')
+        np.savetxt(fileName,Variable_sensitivity)
+        
+        fileNameFreqKernel="%s%s%s%s%s" % (modelFileName.strip('.L'),varName,'_freqsKernel',paramName,'.txt')
+        save_freqs3D(fileNameFreqKernel,Variable_paramTime_freqs,paramName,paramValues)
+        fileNameBins="%s%s%s%s%s" % (modelFileName.strip('.L'),varName,'_binsKernel',paramName,'.txt')
+        np.savetxt(fileNameBins,Variable_bins)
+
+        fileNameDerivative="%s%s%s%s%s" % (modelFileName.strip('.L'),varName,'_derivative',paramName,'.txt')
+        print fileNameDerivative
+
+        save_freqs3D(fileNameDerivative,derivata_frequenze,paramName,paramValues)
+        
+
+
+    #carica file e plotta
+    # Read the array from disk
+	new_data = np.loadtxt(fileNameFreqKernel)
+    # original shape of the array
+	new_data = new_data.reshape((11,44,11))
+    fig=plt.figure()
+    for p in range(0,len(paramValues)-5):
+        ax = fig.add_subplot(2, 3, p, projection='3d')
+    
+
+        #pylab.figure()
+        #pylab.plot
+        #print Variable_paramTime_freqs[:][:][p]
+        for t in timePoints:
+
+            #estraggo frequenze time t
+            timefreqsparam=list(new_data[t]) #n bins liste per il tempo t, ogni lista contiene le frequenze di ogni paramvalue
+            timefreqs=[]
+            for b in range(0,44):
+                timefreqs.append(timefreqsparam[b][p])
+
+            plt.hold(True)
+
+            x = Variable_bins
+            y = timefreqs
+
+            ax.plot(xs=x, ys=[t]*len(x), zs=y, zdir='z', label='ys=0, zdir=z')
+
+            plt.xlabel ('Num divisions');
+            plt.ylabel ('Time');
+
+        #ax.set_title(paramName+"="+str(paramValues[p]))
+            title=paramName+"="+str(paramValues[p])
+        
+            ax.text(0, 2,1.08, title)
+
+
+        
+            plt.suptitle('Probability Distributions')
+
+            #plt.zlabel ('Ambiguity function (Normalized Magnitude-Squared)');
+
+
+    #plot distributions at time t
+    fig=plt.figure()
+    ax = fig.add_subplot(1, 1, 1, projection='3d')
+
+    for p in range(0,len(paramValues)):
+        
+        pValue=paramValues[p]
+    
+        t=7
+ 
+        #estraggo frequenze time t
+        timefreqsparam=list(new_data[t]) #n bins liste per il tempo t, ogni lista contiene le frequenze di ogni paramvalue
+        timefreqs=[]
+        for b in range(0,44):
+            timefreqs.append(timefreqsparam[b][p])
+        
+        plt.hold(True)
+        
+        x = Variable_bins
+        y = timefreqs
+        
+        ax.plot(xs=x, ys=[pValue]*len(x), zs=y, zdir='z', color='r', label='ys=0, zdir=z')
+        
+        plt.xlabel ('Num divisions');
+        plt.ylabel (paramName);
+        
+        plt.suptitle('Probability Distributions at time 7')
+
+        #plt.zlabel ('Ambiguity function (Normalized Magnitude-Squared)');
+
+
+
+
+    #plot derivatives at time t girate
+    fig=plt.figure()
+    ax = fig.add_subplot(1, 1, 1, projection='3d')
+    timefreqslist=[]
+
+    for b in range(0,44):
+    
+        
+        t=7
+        
+        #estraggo frequenze time t
+        timefreqsparam=list(derivata_frequenze[t]) #n bins liste per il tempo t, ogni lista contiene le frequenze di ogni paramvalue
+        timefreqs=[]
+        for p in range(0,len(paramValues)):
+            timefreqs.append(timefreqsparam[b][p])
+        
+        plt.hold(True)
+
+        x = Variable_bins
+        y = timefreqs
+
+        ax.plot(xs=[b]*11, ys=paramValues, zs=y, zdir='z', color='r', marker='+', label='ys=0, zdir=z')
+
+
+
+    plt.xlabel ('Num divisions');
+    plt.ylabel (paramName);
+
+    plt.suptitle('Derivatives of probability distributions at time 7')
+
+
+
+
+    #plot sensitivity curve at time t
+
+    fig=plt.figure()
+    ax = fig.add_subplot(1, 1, 1)
+    timefreqslist=[]
+
+
+    ax.plot(paramValues,Variable_sensitivity[t], color='r', marker='+', label='ys=0, zdir=z')
+
+
+
+    plt.xlabel (paramName);
+    plt.ylabel ('integral of derivatives');
+
+    plt.suptitle('senstitivity curve at time 7')
+
+
+
+    #plot sensitivity coefficient at time t
+
+    fig=plt.figure()
+    ax = fig.add_subplot(1, 1, 1)
+    timefreqslist=[]
+
+
+    ax.plot(timePoints,[0]*11, color='r', marker='+', label='ys=0, zdir=z')
+
+    plt.hold(True)
+    ax.plot(t,Variable_coefficient[t], color='r', marker='+', label='ys=0, zdir=z')
+
+    plt.xlabel ('Time');
+    plt.ylabel ('sensitivty coefficient');
+
+    plt.suptitle('sensitivity coefficient of '+str(paramName)+' at time'+str(t))
+
+
+    #plot sensitivity coefficient at time t
+
+    fig=plt.figure()
+    ax = fig.add_subplot(1, 1, 1)
+    timefreqslist=[]
+
+
+    ax.plot(timePoints,Variable_coefficient, color='r', marker='+', label='ys=0, zdir=z')
+
+
+
+    plt.xlabel ('Time');
+    plt.ylabel ('sensitivty coefficient');
+
+    plt.suptitle('sensitivity coefficient of '+str(paramName)+' in time')
+
+
+
+
+
+    plt.show()
+
+    return Variable_coefficient
+
+
+
 
 
 def get_sensitivity_coefficient(paramName,paramValues,varName,modelFileName,timePoints,timeDelta,nSims,time,saveTimes,cluster,sensitivityFolderName,loadAggregate=True):
@@ -385,7 +632,7 @@ def aggregate_runs_totalReadout(simFolderName,modelFileName,nSims,saveTimes,varN
 
     aggregate_variable_in_time = variable_in_time
 
-    variable2csv(results_folder,modelFileName, 'Total','NumDivisions','aggregate',nSims-1,aggregate_variable_in_time,False)
+    variable2csv(results_folder,modelFileName,varName,'NumDivisions','aggregate',nSims-1,aggregate_variable_in_time,False)
 
     return aggregate_variable_in_time
 
